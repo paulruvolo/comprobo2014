@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(Wee_warmup_project)
+project(wee_warmup_project)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -82,7 +82,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES Wee_warmup_project
+#  LIBRARIES wee_warmup_project
 #  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
@@ -99,19 +99,19 @@ include_directories(
 )
 
 ## Declare a cpp library
-# add_library(Wee_warmup_project
-#   src/${PROJECT_NAME}/Wee_warmup_project.cpp
+# add_library(wee_warmup_project
+#   src/${PROJECT_NAME}/wee_warmup_project.cpp
 # )
 
 ## Declare a cpp executable
-# add_executable(Wee_warmup_project_node src/Wee_warmup_project_node.cpp)
+# add_executable(wee_warmup_project_node src/wee_warmup_project_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(Wee_warmup_project_node Wee_warmup_project_generate_messages_cpp)
+# add_dependencies(wee_warmup_project_node wee_warmup_project_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(Wee_warmup_project_node
+# target_link_libraries(wee_warmup_project_node
 #   ${catkin_LIBRARIES}
 # )
 
@@ -130,7 +130,7 @@ include_directories(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS Wee_warmup_project Wee_warmup_project_node
+# install(TARGETS wee_warmup_project wee_warmup_project_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -155,7 +155,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_Wee_warmup_project.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_wee_warmup_project.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

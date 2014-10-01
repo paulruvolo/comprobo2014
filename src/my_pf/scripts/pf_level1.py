@@ -15,10 +15,12 @@ from random import gauss
 
 import math
 import time
+import random
 
 import numpy as np
 from numpy.random import random_sample
 from sklearn.neighbors import NearestNeighbors
+from nav_msgs.srv import GetMap
 
 class TransformHelpers:
 	""" Some convenience functions for translating between various representions of a robot pose.
@@ -210,8 +212,19 @@ class ParticleFilter:
 		# TODO: fill in the appropriate service call here.  The resultant map should be assigned be passed
 		#		into the init method for OccupancyField
 
-		# for now we have commented out the occupancy field initialization until you can successfully fetch the map
+		rospy.wait_for_service('static_map')
+		try:
+			static_map = rospy.ServiceProxy('static_map', GetMap)
+			map = static_map()
+		except rospy.ServiceException, e:
+			print "Service Call Failed: %s" %e
+
+		print map.map.info.width
+
+		# occupancy field initialization since we can successfully fetch the map
 		#self.occupancy_field = OccupancyField(map)
+
+		print "INITIALIZED"
 		self.initialized = True
 
 	def update_robot_pose(self):
@@ -334,8 +347,17 @@ class ParticleFilter:
 		if xy_theta == None:
 			xy_theta = TransformHelpers.convert_pose_to_xy_and_theta(self.odom_pose.pose)
 		self.particle_cloud = []
-		self.particle_cloud.append(Particle(0,0,0))
-		# TODO create particles
+		#make scaling factor to introduce randomness
+		#create particles
+		for x in range(self.n_particles):
+			a = random.random()
+			self.particle_cloud.append(Particle(xy_theta[0]*a, xy_theta[1]*a, xy_theta[2]*a))
+			for y in range (0,2):
+				b = random.int(0,10)
+				xy_theta[y] = b
+
+		print self.particle_cloud
+		
 
 		self.normalize_particles()
 		self.update_robot_pose()
