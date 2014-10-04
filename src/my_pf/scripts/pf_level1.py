@@ -221,6 +221,7 @@ class ParticleFilter:
 
 		print map.map.info.width
 
+
 		# occupancy field initialization since we can successfully fetch the map
 		#self.occupancy_field = OccupancyField(map)
 
@@ -238,6 +239,7 @@ class ParticleFilter:
 
 		# TODO: assign the lastest pose into self.robot_pose as a geometry_msgs.Pose object
 		# just to get started we will fix the robot's pose to always be at the origin
+		# if pose() != pose()
 		self.robot_pose = Pose()
 
 	def update_particles_with_odom(self, msg):
@@ -254,6 +256,24 @@ class ParticleFilter:
 			old_odom_xy_theta = self.current_odom_xy_theta
 			delta = (new_odom_xy_theta[0] - self.current_odom_xy_theta[0], new_odom_xy_theta[1] - self.current_odom_xy_theta[1], new_odom_xy_theta[2] - self.current_odom_xy_theta[2])
 			self.current_odom_xy_theta = new_odom_xy_theta
+
+			for i in range(len(self.particle_cloud)):
+			#three steps we must take to do this:
+			# draw line from old pose to new pose and calc angle (we say alpha = arc tan(delta_y/delta_x))
+			# rotate everything by theta - alpha, and then translate along line by distance found by sqrt((delta_x)^2 + (delta_y)^2)
+			# then rotate everything back to the final heading (new theta - arctan (delta_y/delta_x))
+			
+
+				alpha = math.atan(delta[1]/delta[2])
+				rotate_1 = alpha -self.current_odom_xy_theta[2]
+				rotate_2 = delta[0] - alpha
+
+				hypotenuse = math.hypot(delta[0],delta[1])
+
+				self.particle_cloud[i].theta = self.current_odom_xy_theta[2] + (alpha- self.current_odom_xy_theta[2]) + rotate_2
+				self.particle_cloud[i].x     = self.current_odom_xy_theta[0] + hypotenuse*(math.sin(self.current_odom_xy_theta[3]+ rotate_1))
+				self.particle_cloud[i].y     = self.current_odom_xy_theta[1] + hypotenuse*(math.cos(self.current_odom_xy_theta[3]+ rotate_1))
+		
 		else:
 			self.current_odom_xy_theta = new_odom_xy_theta
 			return
@@ -350,11 +370,11 @@ class ParticleFilter:
 		#make scaling factor to introduce randomness
 		#create particles
 		for x in range(self.n_particles):
-			a = random.random()
-			self.particle_cloud.append(Particle(xy_theta[0]*a, xy_theta[1]*a, xy_theta[2]*a))
-			for y in range (0,2):
-				b = random.int(0,10)
-				xy_theta[y] = b
+			a = random.random() - 0.5
+			b = random.random() - 0.5
+			c = random.random() - 0.5
+			self.particle_cloud.append(Particle(xy_theta[0]+a, xy_theta[1]+b, xy_theta[2]+c))
+
 
 		print self.particle_cloud
 		
