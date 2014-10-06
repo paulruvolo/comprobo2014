@@ -264,16 +264,17 @@ class ParticleFilter:
 			# then rotate everything back to the final heading (new theta - arctan (delta_y/delta_x))
 			
 
-				alpha = math.atan(delta[1]/delta[2])
+				alpha = math.atan2(delta[1],delta[0])
 				rotate_1 = alpha -self.current_odom_xy_theta[2]
-				rotate_2 = delta[0] - alpha
+				rotate_2 = delta[2] - alpha
 
 				hypotenuse = math.hypot(delta[0],delta[1])
 
-				self.particle_cloud[i].theta = self.current_odom_xy_theta[2] + (alpha- self.current_odom_xy_theta[2]) + rotate_2
-				self.particle_cloud[i].x     = self.current_odom_xy_theta[0] + hypotenuse*(math.sin(self.current_odom_xy_theta[3]+ rotate_1))
-				self.particle_cloud[i].y     = self.current_odom_xy_theta[1] + hypotenuse*(math.cos(self.current_odom_xy_theta[3]+ rotate_1))
-		
+				self.particle_cloud[i].theta += rotate_1
+				self.particle_cloud[i].x     += hypotenuse*(math.sin(self.current_odom_xy_theta[2]+ rotate_1))
+				self.particle_cloud[i].y     += hypotenuse*(math.cos(self.current_odom_xy_theta[2]+ rotate_1))
+				self.particle_cloud[i].theta += rotate_2
+
 		else:
 			self.current_odom_xy_theta = new_odom_xy_theta
 			return
