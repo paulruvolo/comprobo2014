@@ -240,7 +240,9 @@ class ParticleFilter:
 		# TODO: assign the lastest pose into self.robot_pose as a geometry_msgs.Pose object
 		# just to get started we will fix the robot's pose to always be at the origin
 		# if pose() != pose()
-		self.robot_pose = Pose()
+
+		#pose assigned as follows:
+		self.robot_pose = max(self.particle_cloud)
 
 	def update_particles_with_odom(self, msg):
 		""" Update the particles using the newly given odometry pose.
@@ -262,6 +264,7 @@ class ParticleFilter:
 			# draw line from old pose to new pose and calc angle (we say alpha = arc tan(delta_y/delta_x))
 			# rotate everything by theta - alpha, and then translate along line by distance found by sqrt((delta_x)^2 + (delta_y)^2)
 			# then rotate everything back to the final heading (new theta - arctan (delta_y/delta_x))
+			# atan gives a number from -pi/2 to pi/2-- need to incr to -pi to pi
 			
 
 				alpha = math.atan2(delta[1],delta[0])
@@ -279,7 +282,7 @@ class ParticleFilter:
 			self.current_odom_xy_theta = new_odom_xy_theta
 			return
 
-		# TODO: modify particles using delta
+		# ############# DONE################## # TODO: modify particles using delta
 		# For added difficulty: Implement sample_motion_odometry (Prob Rob p 136)
 
 	def map_calc_range(self,x,y,theta):
@@ -386,6 +389,20 @@ class ParticleFilter:
 	def normalize_particles(self):
 		""" Make sure the particle weights define a valid distribution (i.e. sum to 1.0) """
 		# TODO: implement this
+
+		#add up all self.w values and divide current weight by sum of all weights. 
+		total_weight = 0
+		#add up the weights
+		for x in range(len(self.n_particles)):
+			total_weight += self.w
+		# divide by total weight, if the normalized value is not between (0,1), "delete" it 
+		for y in range(len(self.n_particles)):
+			norm_weight = self.w/total_weight
+			if norm_weight < 0 or norm_weight > 1:
+				particle_cloud.remove(y)
+				#tried to delete by assigning value of [0,0,0]
+				# self.w = 0
+				# Particle(0, 0, 0)
 
 	def publish_particles(self, msg):
 		particles_conv = []
