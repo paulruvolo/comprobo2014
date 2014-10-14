@@ -6,6 +6,7 @@ from std_msgs.msg import Header, String
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, PoseArray, Pose, Point, Quaternion
 from nav_msgs.srv import GetMap
+from copy import deepcopy
 
 import tf
 from tf import TransformListener
@@ -102,6 +103,8 @@ class OccupancyField:
         for i in range(self.map.info.width):
             for j in range(self.map.info.height):
                 # occupancy grids are stored in row major order, if you go through this right, you might be able to use curr
+                # row major order converts the 2-d strucutre of the map into a 1-d array by concatenating the rows of the map
+                # Don't focus here! Go to the OccupancyField class and look at the get_closest_obstacle_function.
                 ind = i + j*self.map.info.width
                 if self.map.data[ind] > 0:
                     total_occupied += 1
@@ -125,14 +128,14 @@ class OccupancyField:
         nbrs = NearestNeighbors(n_neighbors=1,algorithm="ball_tree").fit(O)
         distances, indices = nbrs.kneighbors(X)
 
-        self.closest_occ = {}
+        self.closest_occ = {} #init dictionary
         curr = 0
         for i in range(self.map.info.width):
             for j in range(self.map.info.height):
                 ind = i + j*self.map.info.width
                 self.closest_occ[ind] = distances[curr][0]*self.map.info.resolution
                 curr += 1
-        print self.closest_occ
+        #print self.closest_occ
 
     def get_closest_obstacle_distance(self,x,y):
         """ Compute the closest obstacle to the specified (x,y) coordinate in the map.  If the (x,y) coordinate
@@ -173,7 +176,6 @@ class ParticleFilter:
                                    The pose is expressed as a list [x,y,theta] (where theta is the yaw)
             map: the map we will be localizing ourselves in.  The map should be of type nav_msgs/OccupancyGrid
     """
-    
 
     def __init__(self):
         self.initialized = False        # make sure we don't perform updates before everything is setup
@@ -212,9 +214,10 @@ class ParticleFilter:
         self.current_odom_xy_theta = []
 
         # request the map from the map server, the map should be of type nav_msgs/OccupancyGrid
-        # TODO: fill in the appropriate service call here.  The resultant map should be assigned be passed
+        # TODO: DONE fill in the appropriate service call here.  The resultant map should be assigned be passed
         #       into the init method for OccupancyField
 
+        #call service called static_map
         rospy.wait_for_service('static_map')
         try:
             static_map = rospy.ServiceProxy('static_map', GetMap)
@@ -316,14 +319,25 @@ class ParticleFilter:
         #print out the map to find out which ones are occupied (not necessary for this problem)
         #liklihood field supported by the occupancy field. 
 
-        #you have a beam at 0 degrees, it tells you that you are some distance away
-        #the corresponding closest_occ[ind] function returns how far the obstacle is from you
+        # #you have a beam at 0 degrees, it tells you that you are some distance away
+        # global zeroDegrees #check for accuracy
+        # zeroDegrees = 0
+        zeroDegrees = msg.ranges[0] #should print the distance directly in front of the laser
+        print zeroDegrees
+        # #you need your pose information (particles-- x,y,theta)
 
-        #create array of lidar data (may need to include angle, and coordinates i,j)
-
-        #compare distance from closest obstacle (which is based on your assumed position) to distance at said angle from closest obstacle
-
-        print OccupancyField.closest_occ[ind]
+        # #calculates the corresponding closest_obstacle function returns how far the obstacle is from you
+        zeroClosest = self.occupancy_field.get_closest_obstacle_distance (self.particle_cloud[0].x,self.particle_cloud[0].y)
+        print zeroClosest
+        # #compare distance from closest obstacle (which is based on your assumed position) to distance at said angle from closest obstacle
+        # #assign particle weight based on this comparison
+        diff_dist = zeroDegrees - zeroClosest
+        # print diff_dist
+        #sigma is the variance of the Gaussian distribution that basically specifies how noisy you expect the laser measurements to be
+        sigma = 0.65 #should never be bigger than 1 for a normal distribution
+        #self.particle_cloud[0].w = math.exp(diff_dist*diff_dist/(2*sigma*sigma)) #assign weight
+        self.particle_cloud[0].w = math.exp((-1/2*(sigma**2)*(zeroClosest**2)))
+        print self.particle_cloud[0].w
 
         #pass
 
@@ -375,7 +389,8 @@ class ParticleFilter:
         inds = values[np.digitize(random_sample(n), bins)]
         samples = []
         for i in inds:
-            samples.append(choices[int(i)])
+            #deepcopy stores copies of the samples instead of returning a random sample of the items in the input list.
+            samples.append(deepcopy(choices[int(i)]))
         return samples
 
     def update_initial_pose(self, msg):
@@ -410,23 +425,23 @@ class ParticleFilter:
 
     def normalize_particles(self):
         """ Make sure the particle weights define a valid distribution (i.e. sum to 1.0) """
-        # TODO: implement this
-
-        #add up all self.w values and divide current weight by sum of all weights. 
-        total_weight = 0
-        #add up the weights
+        # # TODO: implement this
+        pass
+        # #add up all self.w values and divide current weight by sum of all weights. 
+        # total_weight = 0
+        # #add up the weights
         # for x in range(self.n_particles):
         #   total_weight += self.w
 
 
-        # divide by total weight, if the normalized value is not between (0,1), "delete" it.  Don't worry about this.  It will always be equal to less than 1
+        # #divide by total weight, if the normalized value is not between (0,1), "delete" it.  Don't worry about this.  It will always be equal to less than 1
         # for y in self.n_particles: #self.n_particles just gives back a number anyway so didn't need to find length
         #   norm_weight = self.w/total_weight
         #   if norm_weight < 0 or norm_weight > 1:
         #       particle_cloud.remove(y)
-                #tried to delete by assigning value of [0,0,0]
-                # self.w = 0
-                # Particle(0, 0, 0)
+        #         tried to delete by assigning value of [0,0,0]
+        #         self.w = 0
+        #         Particle(0, 0, 0)
 
     def publish_particles(self, msg):
         particles_conv = []
