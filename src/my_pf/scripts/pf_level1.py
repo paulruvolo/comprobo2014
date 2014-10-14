@@ -253,7 +253,13 @@ class ParticleFilter:
 
         #pose assigned as follows:
         #print self.particle_cloud
-        self.robot_pose = max(self.particle_cloud).as_pose()
+        #self.robot_pose = max(self.particle_cloud).as_pose() #this is not what we want
+        #compute the most likely pose
+        for x in range(len(self.particle_cloud)):
+            highestPose = self.particle_cloud[0]
+            if (highestPose <= self.particle_cloud[x]):
+                highestPose = self.particle_cloud[x]
+        self.robot_pose = highestPose.as_pose()
 
     def update_particles_with_odom(self, msg):
         """ Update the particles using the newly given odometry pose.
@@ -311,6 +317,18 @@ class ParticleFilter:
         # make sure the distribution is normalized
         self.normalize_particles()
         # TODO: fill out the rest of the implementation
+        particleWeights = []
+
+        for i in range(len(self.particle_cloud)):
+            particleWeights.append(self.particle_cloud[i].w)
+        #print  "We have these weights %s" %particleWeights
+
+        #if particle weight is lower, it shouldn't be picked as often
+        self.particle_cloud = ParticleFilter.draw_random_sample(self.particle_cloud,particleWeights,self.n_particles)
+
+        #reintialize back to an equal distribution
+        for i in range(len(self.particle_cloud)):
+            self.particle_cloud[i].w = 1.0/self.n_particles 
 
     def update_particles_with_laser(self, msg):
         """ Updates the particle weights in response to the scan contained in the msg """
@@ -318,28 +336,42 @@ class ParticleFilter:
         #we have the information from the scan 
         #print out the map to find out which ones are occupied (not necessary for this problem)
         #liklihood field supported by the occupancy field. 
+        """Working version for all particles"""
+        global zeroDegrees
+        zeroDegrees = 0
+        zeroDegrees = msg.ranges[0] #laser distance in front of robot
 
-        # #you have a beam at 0 degrees, it tells you that you are some distance away
-        # global zeroDegrees #check for accuracy
-        # zeroDegrees = 0
-        zeroDegrees = msg.ranges[0] #should print the distance directly in front of the laser
-        print zeroDegrees
-        # #you need your pose information (particles-- x,y,theta)
+        for i in range(len(self.particle_cloud)):
+            closestDistance = self.occupancy_field.get_closest_obstacle_distance (self.particle_cloud[i].x,self.particle_cloud[i].y)
+            diff_dist = zeroDegrees - closestDistance
+            sigma = 0.65
+            self.particle_cloud[i].w = math.exp((-1/2*(sigma**2)*(closestDistance**2)))
+            # print self.particle_cloud[0].w
+            # print self.particle_cloud[100].w
+            # print self.particle_cloud[200].w
+            # print self.particle_cloud[250].w
 
-        # #calculates the corresponding closest_obstacle function returns how far the obstacle is from you
-        zeroClosest = self.occupancy_field.get_closest_obstacle_distance (self.particle_cloud[0].x,self.particle_cloud[0].y)
-        print zeroClosest
-        # #compare distance from closest obstacle (which is based on your assumed position) to distance at said angle from closest obstacle
-        # #assign particle weight based on this comparison
-        diff_dist = zeroDegrees - zeroClosest
-        # print diff_dist
-        #sigma is the variance of the Gaussian distribution that basically specifies how noisy you expect the laser measurements to be
-        sigma = 0.65 #should never be bigger than 1 for a normal distribution
-        #self.particle_cloud[0].w = math.exp(diff_dist*diff_dist/(2*sigma*sigma)) #assign weight
-        self.particle_cloud[0].w = math.exp((-1/2*(sigma**2)*(zeroClosest**2)))
-        print self.particle_cloud[0].w
 
-        #pass
+        """Working version of prototype code- only works at zero degrees."""
+        # # #you have a beam at 0 degrees, it tells you that you are some distance away
+        # # global zeroDegrees #check for accuracy
+        # # zeroDegrees = 0
+        # zeroDegrees = msg.ranges[0] #should print the distance directly in front of the laser
+        # print zeroDegrees
+        # # #you need your pose information (particles-- x,y,theta)
+
+        # # #calculates the corresponding closest_obstacle function returns how far the obstacle is from you
+        # zeroClosest = self.occupancy_field.get_closest_obstacle_distance (self.particle_cloud[0].x,self.particle_cloud[0].y)
+        # print zeroClosest
+        # # #compare distance from closest obstacle (which is based on your assumed position) to distance at said angle from closest obstacle
+        # # #assign particle weight based on this comparison
+        # diff_dist = zeroDegrees - zeroClosest
+        # # print diff_dist
+        # #sigma is the variance of the Gaussian distribution that basically specifies how noisy you expect the laser measurements to be
+        # sigma = 0.65 #should never be bigger than 1 for a normal distribution
+        # #self.particle_cloud[0].w = math.exp(diff_dist*diff_dist/(2*sigma*sigma)) #assign weight
+        # self.particle_cloud[0].w = math.exp((-1/2*(sigma**2)*(zeroClosest**2)))
+        # print self.particle_cloud[0].w
 
     @staticmethod
     def angle_normalize(z):
@@ -426,23 +458,21 @@ class ParticleFilter:
     def normalize_particles(self):
         """ Make sure the particle weights define a valid distribution (i.e. sum to 1.0) """
         # # TODO: implement this
-        pass
+        #pass
         # #add up all self.w values and divide current weight by sum of all weights. 
-        # total_weight = 0
+        global total_weight 
+        total_weight = 0
+       
         # #add up the weights
-        # for x in range(self.n_particles):
-        #   total_weight += self.w
+        for x in range(self.n_particles):
+           total_weight += self.particle_cloud[x].w
 
+        print total_weight
 
-        # #divide by total weight, if the normalized value is not between (0,1), "delete" it.  Don't worry about this.  It will always be equal to less than 1
-        # for y in self.n_particles: #self.n_particles just gives back a number anyway so didn't need to find length
-        #   norm_weight = self.w/total_weight
-        #   if norm_weight < 0 or norm_weight > 1:
-        #       particle_cloud.remove(y)
-        #         tried to delete by assigning value of [0,0,0]
-        #         self.w = 0
-        #         Particle(0, 0, 0)
-
+        # #divide by total weight to get sum of all probabilities to be equal to 1.
+        for y in range(self.n_particles): #self.n_particles just gives back a number anyway so didn't need to find length
+           self.particle_cloud[y].w/=total_weight
+    
     def publish_particles(self, msg):
         particles_conv = []
         for p in self.particle_cloud:
