@@ -336,16 +336,36 @@ class ParticleFilter:
         #we have the information from the scan 
         #print out the map to find out which ones are occupied (not necessary for this problem)
         #liklihood field supported by the occupancy field. 
-        """Working version for all particles"""
-        global zeroDegrees
-        zeroDegrees = 0
-        zeroDegrees = msg.ranges[0] #laser distance in front of robot
+        """modified version for all particles"""
+        # global Degrees0, Degrees40, Degrees80, Degrees120, Degrees160, Degrees200, Degrees240, Degrees280, Degrees320
+        # Degrees0, Degrees40, Degrees80, Degrees120, Degrees160, Degrees200, Degrees240, Degrees280, Degrees320 = 0
+        # Degrees0 = msg.ranges[0]     #laser distance in front of robot
+        # Degrees40 = msg.ranges[40]
+        # Degrees80 = msg.ranges[80]
+        # Degrees120 = msg.ranges[120]
+        # Degrees160 = msg.ranges[160]
+        # Degrees200 = msg.ranges[200]
+        # Degrees240 = msg.ranges[240]
+        # Degrees280 = msg.ranges[280]
+        # Degrees320 = msg.ranges[320]
 
-        for i in range(len(self.particle_cloud)):
-            closestDistance = self.occupancy_field.get_closest_obstacle_distance (self.particle_cloud[i].x,self.particle_cloud[i].y)
-            diff_dist = zeroDegrees - closestDistance
-            sigma = 0.65
-            self.particle_cloud[i].w = math.exp((-1/2*(sigma**2)*(closestDistance**2)))
+        # particleLaserWeight = []    #array for all the weights of one particle.  Will be used to get a final likelihood weight
+        # # for that particle
+    
+        # #Calculates the weight of the particle at that degree
+        # for i in range(len(self.particle_cloud)):
+        #     closestDistance = self.occupancy_field.get_closest_obstacle_distance (self.particle_cloud[i].x,self.particle_cloud[i].y)
+        #     diff_dist = Degrees0 - closestDistance
+        #     sigma = 0.65
+        #     self.particle_cloud[i].w = math.exp((-1/2*(sigma**2)*(closestDistance**2)))
+
+        #     #puts that weight into an array for that particle
+        #     for j in range(len(particleLaserWeight)):
+        #         particleLaserWeight.append(self.particle_cloud[j])
+
+        #     for k in range(len(self.particle_cloud)):
+
+
             # print self.particle_cloud[0].w
             # print self.particle_cloud[100].w
             # print self.particle_cloud[200].w
@@ -353,24 +373,24 @@ class ParticleFilter:
 
 
         """Working version of prototype code- only works at zero degrees."""
-        # # #you have a beam at 0 degrees, it tells you that you are some distance away
-        # # global zeroDegrees #check for accuracy
-        # # zeroDegrees = 0
-        # zeroDegrees = msg.ranges[0] #should print the distance directly in front of the laser
+        # #you have a beam at 0 degrees, it tells you that you are some distance away
+        # global zeroDegrees #check for accuracy
+        # zeroDegrees = 0
+        zeroDegrees = msg.ranges[0] #should print the distance directly in front of the laser
         # print zeroDegrees
-        # # #you need your pose information (particles-- x,y,theta)
+        # #you need your pose information (particles-- x,y,theta)
 
-        # # #calculates the corresponding closest_obstacle function returns how far the obstacle is from you
-        # zeroClosest = self.occupancy_field.get_closest_obstacle_distance (self.particle_cloud[0].x,self.particle_cloud[0].y)
+        # #calculates the corresponding closest_obstacle function returns how far the obstacle is from you
+        zeroClosest = self.occupancy_field.get_closest_obstacle_distance (self.particle_cloud[0].x,self.particle_cloud[0].y)
         # print zeroClosest
-        # # #compare distance from closest obstacle (which is based on your assumed position) to distance at said angle from closest obstacle
-        # # #assign particle weight based on this comparison
-        # diff_dist = zeroDegrees - zeroClosest
-        # # print diff_dist
-        # #sigma is the variance of the Gaussian distribution that basically specifies how noisy you expect the laser measurements to be
-        # sigma = 0.65 #should never be bigger than 1 for a normal distribution
-        # #self.particle_cloud[0].w = math.exp(diff_dist*diff_dist/(2*sigma*sigma)) #assign weight
-        # self.particle_cloud[0].w = math.exp((-1/2*(sigma**2)*(zeroClosest**2)))
+        # #compare distance from closest obstacle (which is based on your assumed position) to distance at said angle from closest obstacle
+        # #assign particle weight based on this comparison
+        diff_dist = zeroDegrees - zeroClosest
+        # print diff_dist
+        #sigma is the variance of the Gaussian distribution that basically specifies how noisy you expect the laser measurements to be
+        sigma = 0.65 #should never be bigger than 1 for a normal distribution
+        #self.particle_cloud[0].w = math.exp(diff_dist*diff_dist/(2*sigma*sigma)) #assign weight
+        self.particle_cloud[0].w = math.exp((-1/2*(sigma**2)*(zeroClosest**2)))
         # print self.particle_cloud[0].w
 
     @staticmethod
