@@ -1,7 +1,7 @@
 from pickle import load
 import sklearn
 import numpy as np
-from numpy.random import choice
+from random import sample
 import pdb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -9,14 +9,14 @@ from sklearn.cross_validation import StratifiedKFold
 from sklearn.cluster import KMeans
 from sklearn import svm, grid_search
 
-k = 160
+k = 5
 
 f = open('SIFT_features.pickle','r')
 descriptors = load(f)
 f.close()
 
 X = np.zeros((0,128))
-y = np.zeros((0,1))
+y = np.zeros((0,))
 
 categories = descriptors.keys()
 total_descriptors = 0
@@ -34,7 +34,7 @@ for i in range(len(categories)):
 		X[curr:curr+data.shape[0]] = data
 		curr += data.shape[0]
 
-fit_X = X[np.random.choice(range(total_descriptors),10000),:]
+fit_X = X[sample(range(total_descriptors),10000),:]
 clusters = KMeans(n_clusters=k)
 clusters.fit(fit_X)
 
@@ -57,5 +57,5 @@ y = np.ravel(y)
 skf = StratifiedKFold(y,5)
 for train, test in skf:
 	model = grid_search.GridSearchCV(svm.SVC(), param_grid)
-	model.fit(X_transformed[train,:],y[train,:])
-	print model.score(X_transformed[test,:],y[test,:])
+	model.fit(X_transformed[train,:],y[train])
+	print model.score(X_transformed[test,:],y[test])

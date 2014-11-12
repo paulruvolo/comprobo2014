@@ -29,14 +29,13 @@ for c_idx in range(len(categories)):
 print categories
 
 X = np.zeros((0,3))
-y = np.zeros((0,1))
+y = np.zeros((0,))
 
 categories = cache.keys()
 for i in range(len(categories)):
 	for data in cache[categories[i]]:
 		X = np.vstack((X,data))
-		y = np.vstack((y,i*np.ones((1,1))))
-y = np.ravel(y)
+		y = np.hstack((y,i*np.ones((1,))))
 
 skf = StratifiedKFold(y,5)
 category_accuracies = np.zeros((len(categories),5))
@@ -44,9 +43,9 @@ category_accuracies = np.zeros((len(categories),5))
 fold = 0
 for train, test in skf:
 	Xtest = X[test,:]
-	ytest = y[test,:]
+	ytest = y[test]
 	model = LogisticRegression()
-	model.fit(X[train,:],y[train,:])
+	model.fit(X[train,:],y[train])
 	print model.score(Xtest,ytest)
 	for i in range(len(categories)):
 		category_accuracies[i,fold] = model.score(Xtest[ytest==i],ytest[ytest==i])
@@ -54,3 +53,4 @@ for train, test in skf:
 
 # print out accurcies by category
 print zip(categories,np.mean(category_accuracies,axis=1))
+
