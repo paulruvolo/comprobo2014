@@ -40,7 +40,6 @@ import serial
 import socket
 import time
 
-
 BASE_WIDTH = 248    # millimeters
 MAX_SPEED = 300     # millimeters/second
 
@@ -348,19 +347,36 @@ class xv11():
 
     def getDigitalSensors(self):
         """ Update values for digital sensors in the self.state dictionary. """
-        self.port.write("getdigitalsensors\n")
-        line = self.port.readline()
-        while line.split(",")[0] != "Digital Sensor Name":
+        self.port.send("getdigitalsensors\r\n")
+        line = self.port.recv(1024)
+        if line.find('Unknown Cmd') != -1:
+            # something weird happened bail
+            raise IOError('Get Digital Sensors Failed')
+
+        listing = [s.strip() for s in line.splitlines()]
+        if not(line.endswith('\n')) and len(listing):
+            remainder = listing[-1]
+            listing = listing[0:-1]
+        else:
+            remainder = ""
+
+        while (len(listing) < 11):
+                line = remainder + self.port.recv(1024)
+                remainder = ""
+                listing += [s.strip() for s in line.splitlines()]
+                if not(line.endswith('\n')) and len(listing):
+                    remainder = listing[-1]
+                    listing = listing[0:-1]
+                else:
+                    remainder = ""
+
+        for i in range(len(listing)-1):
             try:
-                line = self.port.readline()
-            except:
-                return
-        for i in range(len(xv11_digital_sensors)):
-            try:
-                values = self.port.readline().split(",")
+                values = listing[i+1].split(',')
                 self.state[values[0]] = int(values[1])
             except:
                 pass
+        return [self.state['LFRONTBIT'],self.state['LSIDEBIT'],self.state['RFRONTBIT'],self.state['RSIDEBIT']]
 
     def getCharger(self):
         """ Update values for charger/battery related info in self.state dictionary. """

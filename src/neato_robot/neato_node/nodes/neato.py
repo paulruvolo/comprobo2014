@@ -41,6 +41,7 @@ from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from neato_node.msg import Bump
 from tf.broadcaster import TransformBroadcaster
 
 from neato_driver.neato_driver import xv11, BASE_WIDTH, MAX_SPEED
@@ -61,6 +62,7 @@ class NeatoNode:
         rospy.Subscriber("cmd_vel", Twist, self.cmdVelCb)
         self.scanPub = rospy.Publisher('scan', LaserScan)
         self.odomPub = rospy.Publisher('odom',Odometry)
+        self.bumpPub = rospy.Publisher('bump',Bump)
         self.odomBroadcaster = TransformBroadcaster()
 
         self.cmd_to_send = None
@@ -145,14 +147,19 @@ class NeatoNode:
                 print 'Got motors %f' % (time.time() - t_start)
             except:
                 pass
-            t_start = time.time()            
+            t_start = time.time()           
+
+            bump_sensors = self.robot.getDigitalSensors()
+ 
             # send updated movement commands
             self.robot.setMotors(self.cmd_vel[0], self.cmd_vel[1], max(abs(self.cmd_vel[0]),abs(self.cmd_vel[1])))
             print 'Set motors %f' % (time.time() - t_start)
 
 
+
             # publish everything
             self.scanPub.publish(scan)
+            self.bumpPub.publish(Bump(leftFront=bump_sensors[0],leftSide=bump_sensors[1],rightFront=bump_sensors[2],rightSide=bump_sensors[3]))
             self.robot.requestScan()
             scan.header.stamp = rospy.Time.now()
 
