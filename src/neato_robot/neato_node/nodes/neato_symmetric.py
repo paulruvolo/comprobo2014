@@ -60,7 +60,7 @@ class NeatoNode:
         rospy.Subscriber("pi_cmd",String,self.pi_command)
 
         rospy.Subscriber("cmd_vel", Twist, self.cmdVelCb)
-        self.scanPub = rospy.Publisher('scan_orig', LaserScan, queue_size=10)
+        self.scanPub = rospy.Publisher('scan', LaserScan, queue_size=10)
         self.odomPub = rospy.Publisher('odom',Odometry, queue_size=10)
         self.bumpPub = rospy.Publisher('bump',Bump, queue_size=10)
         self.odomBroadcaster = TransformBroadcaster()

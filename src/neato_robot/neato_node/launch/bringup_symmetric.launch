@@ -4,7 +4,7 @@
   <include file="$(find neato_node)/launch/bringup_minimal_symmetric.launch">
 	<arg name="host" value="$(arg host)"/>
   </include>
-  <include file="$(find gscam)/examples/raspi_nodelet.launch">
-	<arg name="host" value="$(arg host)"/>
-  </include>
+ <node name="jpg_stream" pkg="neato_node" type="jpg_stream">
+    <param name="host" value="$(arg host)"/>
+  </node>
 </launch>
