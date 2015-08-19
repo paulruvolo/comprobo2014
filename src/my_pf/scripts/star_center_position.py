@@ -13,7 +13,7 @@ from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
 from std_msgs.msg import Header
 from tf import TransformListener, TransformBroadcaster
 from copy import deepcopy
-from math import sin, cos, pi
+from math import sin, cos, pi, atan2, fabs
 
 class TransformHelpers:
     """ Some convenience functions for translating between various representions of a robot pose.
@@ -41,6 +41,31 @@ class TransformHelpers:
         translation = (transformed_translation[0], transformed_translation[1], transformed_translation[2])
         rotation = quaternion_from_matrix(rotation)
         return (translation, rotation)
+
+    @staticmethod
+    def angle_normalize(z):
+        """ convenience function to map an angle to the range [-pi,pi] """
+        return atan2(sin(z), cos(z))
+
+    @staticmethod
+    def angle_diff(a, b):
+        """ Calculates the difference between angle a and angle b (both should be in radians)
+            the difference is always based on the closest rotation from angle a to angle b
+            examples:
+                angle_diff(.1,.2) -> -.1
+                angle_diff(.1, 2*math.pi - .1) -> .2
+                angle_diff(.1, .2+2*math.pi) -> -.1
+        """
+        a = TransformHelpers.angle_normalize(a)
+        b = TransformHelpers.angle_normalize(b)
+        d1 = a-b
+        d2 = 2*pi - fabs(d1)
+        if d1 > 0:
+            d2 *= -1.0
+        if fabs(d1) < fabs(d2):
+            return d1
+        else:
+            return d2
 
 class MarkerLocator(object):
     def __init__(self, id, position, yaw):
@@ -80,11 +105,26 @@ class MarkerProcessor(object):
         self.tf_listener = TransformListener()
         self.tf_broadcaster = TransformBroadcaster()
         self.marker_locators = {}
-        self.marker_locators[1] = MarkerLocator(1,(0.0,0.0),0)
+        self.add_marker_locator(MarkerLocator(0,(0.0,0.0),0))
+        self.add_marker_locator(MarkerLocator(1,(1.4/1.1,2.0/1.1),0))
+
+    def add_marker_locator(self, marker_locator):
+        self.marker_locators[marker_locator.id] = marker_locator
 
     def process_markers(self, msg):
         for marker in msg.markers:
-            if marker.id in self.marker_locators:
+            # do some filtering basd on prior knowledge
+            # we know the approximate z coordinate and that all angles but yaw should be close to zero
+            euler_angles = euler_from_quaternion((marker.pose.pose.orientation.x,
+                                                  marker.pose.pose.orientation.y,
+                                                  marker.pose.pose.orientation.z,
+                                                  marker.pose.pose.orientation.w))
+            angle_diffs = TransformHelpers.angle_diff(euler_angles[0],pi), TransformHelpers.angle_diff(euler_angles[1],0)
+            if (marker.id in self.marker_locators and
+                2.4 <= marker.pose.pose.position.z <= 2.6 and
+                fabs(angle_diffs[0]) <= .1 and
+                fabs(angle_diffs[1]) <= .1):
+                print marker.pose.pose.position.z
                 locator = self.marker_locators[marker.id]
                 xy_yaw = locator.get_camera_position(marker)
                 orientation_tuple = quaternion_from_euler(0,0,xy_yaw[2])
