@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(neato_node)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-find_package(catkin REQUIRED COMPONENTS message_generation roscpp tf laser_geometry cv_bridge image_transport roscpp camera_info_manager)
+find_package(catkin REQUIRED COMPONENTS message_generation roscpp tf laser_geometry cv_bridge image_transport roscpp camera_info_manager cmake_modules)
 
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
