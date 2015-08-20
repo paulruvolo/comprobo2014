@@ -1,0 +1,5 @@
+<launch>
+  <node name="STAR_positioning_node" type="star_center_position.py" pkg="my_pf" output="screen"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find my_pf)/rviz/STAR_center.rviz"/>
+  <include file="$(find ar_pose)/launch/ar_pose_multi.launch"/>
+</launch>

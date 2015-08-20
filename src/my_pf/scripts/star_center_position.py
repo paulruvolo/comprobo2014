@@ -9,6 +9,7 @@ import rospy
 from ar_pose.msg import ARMarkers
 from tf.transformations import euler_from_quaternion, rotation_matrix, quaternion_from_matrix, quaternion_from_euler
 import numpy as np
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
 from std_msgs.msg import Header
 from tf import TransformListener, TransformBroadcaster
@@ -95,21 +96,38 @@ class MarkerLocator(object):
         return xy_yaw
 
 class MarkerProcessor(object):
-    def __init__(self):
+    def __init__(self, use_dummy_transform=False):
         rospy.init_node('star_center_positioning_node')
-        self.marker_sub = rospy.Subscriber("ar_pose_marker",
-                                           ARMarkers,
-                                           self.process_markers)
-        self.star_pose_pub = rospy.Publisher("STAR_pose",PoseStamped,queue_size=10)
-        self.star_pose_offset_pub = rospy.Publisher("STAR_pose_corrected",PoseStamped,queue_size=10)
-        self.tf_listener = TransformListener()
-        self.tf_broadcaster = TransformBroadcaster()
+        if use_dummy_transform:
+            self.odom_frame_name = "odom_dummy"
+        else:
+            self.odom_frame_name = "odom"
+
         self.marker_locators = {}
         self.add_marker_locator(MarkerLocator(0,(0.0,0.0),0))
         self.add_marker_locator(MarkerLocator(1,(1.4/1.1,2.0/1.1),0))
 
+        self.marker_sub = rospy.Subscriber("ar_pose_marker",
+                                           ARMarkers,
+                                           self.process_markers)
+        self.odom_sub = rospy.Subscriber("odom", Odometry, self.process_odom, queue_size=10)
+        self.star_pose_pub = rospy.Publisher("STAR_pose",PoseStamped,queue_size=10)
+        self.continuous_pose = rospy.Publisher("STAR_pose_continuous",PoseStamped,queue_size=10)
+        self.tf_listener = TransformListener()
+        self.tf_broadcaster = TransformBroadcaster()
+
     def add_marker_locator(self, marker_locator):
         self.marker_locators[marker_locator.id] = marker_locator
+
+    def process_odom(self, msg):
+        p = PoseStamped(header=Header(stamp=rospy.Time(0), frame_id=self.odom_frame_name),
+                        pose=msg.pose.pose)
+        try:
+            STAR_pose = self.tf_listener.transformPose("STAR", p)
+            STAR_pose.header.stamp = msg.header.stamp
+            self.continuous_pose.publish(STAR_pose)
+        except Exception as inst:
+            print "error is", inst
 
     def process_markers(self, msg):
         for marker in msg.markers:
@@ -122,9 +140,8 @@ class MarkerProcessor(object):
             angle_diffs = TransformHelpers.angle_diff(euler_angles[0],pi), TransformHelpers.angle_diff(euler_angles[1],0)
             if (marker.id in self.marker_locators and
                 2.4 <= marker.pose.pose.position.z <= 2.6 and
-                fabs(angle_diffs[0]) <= .1 and
-                fabs(angle_diffs[1]) <= .1):
-                print marker.pose.pose.position.z
+                fabs(angle_diffs[0]) <= .2 and
+                fabs(angle_diffs[1]) <= .2):
                 locator = self.marker_locators[marker.id]
                 xy_yaw = locator.get_camera_position(marker)
                 orientation_tuple = quaternion_from_euler(0,0,xy_yaw[2])
@@ -141,8 +158,7 @@ class MarkerProcessor(object):
                 pose_stamped_corrected = deepcopy(pose_stamped)
                 pose_stamped_corrected.pose.position.x -= offset[0]*cos(xy_yaw[2])
                 pose_stamped_corrected.pose.position.y -= offset[0]*sin(xy_yaw[2])
-                self.star_pose_offset_pub.publish(pose_stamped_corrected)
-                self.star_pose_pub.publish(pose_stamped)
+                self.star_pose_pub.publish(pose_stamped_corrected)
                 self.fix_STAR_to_odom_transform(pose_stamped_corrected)
 
     def fix_STAR_to_odom_transform(self, msg):
@@ -163,7 +179,7 @@ class MarkerProcessor(object):
             This is necessary so things like move_base can work properly. """
         if not(hasattr(self,'translation') and hasattr(self,'rotation')):
             return
-        self.tf_broadcaster.sendTransform(self.translation, self.rotation, rospy.get_rostime(), "odom", "STAR")
+        self.tf_broadcaster.sendTransform(self.translation, self.rotation, rospy.get_rostime(), self.odom_frame_name, "STAR")
 
     def run(self):
         r = rospy.Rate(10)
@@ -172,5 +188,5 @@ class MarkerProcessor(object):
             r.sleep()
 
 if __name__ == '__main__':
-    nh = MarkerProcessor()
+    nh = MarkerProcessor(use_dummy_transform=True)
     nh.run()
