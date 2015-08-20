@@ -86,6 +86,7 @@ namespace ar_pose
     ros::Subscriber sub_;
     image_transport::Subscriber cam_sub_;
     ros::Publisher arMarkerPub_;
+    ros::Publisher debugImagePub_;
 
     image_transport::ImageTransport it_;
 #if ! ROS_VERSION_MINIMUM(1, 9, 0)

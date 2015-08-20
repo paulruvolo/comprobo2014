@@ -40,7 +40,7 @@ namespace ar_pose
   {
     std::string local_path;
     std::string package_path = ros::package::getPath (ROS_PACKAGE_NAME);
-	std::string default_path = "data/object_4x4";
+	  std::string default_path = "data/object_4x4";
     ros::NodeHandle n_param ("~");
     XmlRpc::XmlRpcValue xml_marker_center;
 
@@ -83,6 +83,7 @@ namespace ar_pose
     {
       rvizMarkerPub_ = n_.advertise < visualization_msgs::Marker > ("visualization_marker", 0);
     }
+    debugImagePub_ = n_.advertise < sensor_msgs::Image > ("ar_pose_debug_image", 0);
   }
 
   ARMultiPublisher::~ARMultiPublisher (void)
@@ -348,7 +349,7 @@ namespace ar_pose
     }
     arMarkerPub_.publish(arPoseMarkers_);
     ROS_DEBUG ("Published ar_multi markers");
-    cv::imshow("display", capture_->image);
+    debugImagePub_.publish(capture_->toImageMsg());
     cv::waitKey(5);
   }
 } // end namespace ar_pose
